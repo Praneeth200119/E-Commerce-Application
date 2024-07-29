@@ -18,3 +18,11 @@ RUN rm -rf ./*
 COPY --from=builder /app/build .
 EXPOSE 80
 ENTRYPOINT ["nginx", "-g", "daemon off;"]
+
+
+#groups $USER
+#sudo usermod -aG docker $USER
+#ls -l /var/run/docker.sock
+#sudo chown root:docker /var/run/docker.sock
+#sudo chmod 660 /var/run/docker.sock
+#sudo reboot
