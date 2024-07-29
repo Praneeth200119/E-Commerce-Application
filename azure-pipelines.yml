@@ -21,8 +21,8 @@ stages:
       displayName: 'Install Node.js'
 
     - script: |
-        npm install
-        npm run build
+        npm install --legacy-peer-deps
+        npm run build --prod
       displayName: 'Install dependencies and build React app'
 
     - task: Docker@2
