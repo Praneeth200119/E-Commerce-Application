@@ -1,0 +1,63 @@
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  dockerImageName: 'praneethsvs/my-react-app'  # Replace with your Docker Hub username and desired image name
+  dockerRegistryServiceConnection: 'MyDockerHub'  # Replace with your Docker registry service connection name
+  awsVmIp: '3.88.221.238'  # Replace with your AWS VM IP
+  awsVmUser: 'ubuntu'  # Replace with your AWS VM username
+
+stages:
+- stage: Build
+  jobs:
+  - job: Build
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '18.x'  # Adjust based on your Node.js version
+      displayName: 'Install Node.js'
+
+    - script: |
+        npm install
+        npm run build
+      displayName: 'Install dependencies and build React app'
+
+    - task: Docker@2
+      inputs:
+        containerRegistry: '$(dockerRegistryServiceConnection)'
+        repository: '$(dockerImageName)'
+        command: 'buildAndPush'
+        Dockerfile: '**/Dockerfile'
+        tags: |
+          latest
+      displayName: 'Build and Push Docker Image'
+
+- stage: Deploy
+  dependsOn: Build
+  jobs:
+  - job: Deploy
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: SSH@0
+      inputs:
+        sshEndpoint: 'newconnection'  # Replace with your Azure DevOps SSH service connection endpoint name
+        runOptions: 'inline'
+        # scriptType: 'bash'
+        # scriptLocation: 'inline'
+        inline: |
+          # Check if container exists before attempting to stop and remove it
+          if docker ps -a --format '{{.Names}}' | grep -q ecomm; then
+            docker stop my-container || true
+            docker rm my-container || true
+          fi
+
+          # Retry pulling the Docker image in case of failure
+          docker pull $(dockerImageName):latest || true
+
+          # Run your docker run command to start the container
+          docker run -d --name ecomm -p 80:80 $(dockerImageName):latest
+
